@@ -4,6 +4,7 @@ import static devdayfp.ex.Valid.error;
 import static devdayfp.ex.Valid.value;
 
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import lombok.EqualsAndHashCode;
 
@@ -22,6 +23,7 @@ public abstract class Valid<DATA> {
 	public abstract DATA orElse(DATA elseValue);
 	public abstract <T> Valid<T> map    (Function<DATA, T>        mapper);
 	public abstract <T> Valid<T> flatMap(Function<DATA, Valid<T>> mapper);
+	public abstract Valid<DATA>  filter(Predicate<DATA> check);
 	public abstract <F> Valid<DATA> validate(
 			Function<DATA, F>    access, 
 			Function<F, Boolean> lambda, 
@@ -51,13 +53,20 @@ public abstract class Valid<DATA> {
 			
 			return mapper.apply(data);
 		}
+		public Valid<D> filter(Predicate<D> check) {
+			if (data == null)
+				return Valid.value(null);
+			if (check.test(data))
+				return this;
+			return Valid.value(null);
+		}
 		public <F> Valid<D> validate(
 				Function<D, F>       access, 
-				Function<F, Boolean> lambda, 
+				Function<F, Boolean> check, 
 				String               error) {
 			if (data == null)
 				return this;
-			if (access.andThen(lambda).apply(data))
+			if (check.apply(access.apply(data)))
 				return this;
 			
 			return error(error);
@@ -82,6 +91,9 @@ public abstract class Valid<DATA> {
 		}
 		public <T> Valid<T> flatMap(Function<D, Valid<T>> mapper) {
 			return Valid.error(error);
+		}
+		public Valid<D> filter(Predicate<D> check) {
+			return this;
 		}
 		public <F> Valid<D> validate(
 				Function<D, F>       access, 
